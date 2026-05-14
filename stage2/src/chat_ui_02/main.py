@@ -4,20 +4,9 @@ Stage 2: A minimal FastAPI server with a WebSocket endpoint
 Adds the FastAPI app and a WebSocket route. The WebSocket simply echoes
 messages back for now, so we can confirm the wiring without HTML.
 
-Run:
-    pip install fastapi uvicorn websockets ollama
-    uvicorn main:app --reload
-
 Test the WebSocket:
     pip install websockets
-    python -c "
-    import asyncio, websockets, json
-    async def main():
-        async with websockets.connect('ws://localhost:8000/ws/test') as ws:
-            await ws.send(json.dumps({'content': 'hello'}))
-            print(await ws.recv())
-    asyncio.run(main())
-    "
+    python -c "import asyncio,websockets,json;exec('''async def m():\n ws=await websockets.connect('ws://localhost:8000/ws/test')\n await ws.send(json.dumps({'content':'hello'}))\n print(await ws.recv())\n await ws.close()''');asyncio.run(m())"
 """
 
 import ollama
