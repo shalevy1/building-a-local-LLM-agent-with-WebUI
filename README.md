@@ -1,34 +1,78 @@
-# Part 2 — Runnable code per stage
+# ollama-chat-ui-examples
 
-Each stage is a self-contained snapshot. `cd` into the folder and run.
+Progressive Chat UI examples for Ollama and Qwen — each stage is a
+self-contained snapshot that builds on the previous one.
 
 ## Prerequisites
 
+Pull a model (the default is `qwen3.5:9b`; change `MODEL_NAME` at the top of
+any `main.py` to use a different one):
+
 ```bash
-pip install ollama fastapi uvicorn websockets
-ollama pull qwen3.5:9b   # or whichever model you want
+ollama pull qwen3.5:9b
 ```
 
-The model name is set to `qwen3.5:9b` at the top of every `main.py`. Swap it
-for whatever you have pulled.
+## Install
 
-## How to run each stage
+From the repo root, install the package and all dependencies into your
+virtual environment:
 
-| Stage | What it demonstrates | How to run |
-|-------|---------------------|------------|
-| 1 | The Agent class, validated through a CLI loop | `cd stage1 && python main.py` |
-| 2 | FastAPI server with a WebSocket that echoes | `cd stage2 && uvicorn main:app --reload` |
-| 3 | Server now serves index.html; layout renders | `cd stage3 && uvicorn main:app --reload`, open `http://localhost:8000/` |
-| 4 | Real streaming: thinking, content, tool calls | `cd stage4 && uvicorn main:app --reload` |
-| 5 | Sessions sidebar, history replay on reconnect | `cd stage5 && uvicorn main:app --reload` |
-| 6 | Skills picker in sidebar | drop `.md` files in `stage6/skills/` first, then run |
-| 7 | Slash commands as buttons (final version) | `cd stage7 && uvicorn main:app --reload` |
+```bash
+pip install -e .
+```
+
+Re-run this command any time you edit source files so the entry-point scripts
+pick up your changes.
+
+## Running a stage
+
+Each stage is exposed as a console script:
+
+| Stage | What it demonstrates | Command |
+|-------|----------------------|---------|
+| 1 | Agent class validated through a CLI loop | `chat-ui-stage1` |
+| 2 | FastAPI server + WebSocket echo (no UI) | `chat-ui-stage2` |
+| 3 | Server serves `index.html`; layout renders | `chat-ui-stage3` |
+| 4 | Real streaming: thinking, content, tool calls | `chat-ui-stage4` |
+| 5 | Sessions sidebar, history replay on reconnect | `chat-ui-stage5` |
+| 6 | Skills picker in sidebar | `chat-ui-stage6` |
+| 7 | Context warnings, compaction, slash-command buttons (final) | `chat-ui-stage7` |
+
+Stages 2–7 start a server on `http://127.0.0.1:8000/`. Press `Ctrl+C` to stop.
+
+Stage 1 is a CLI-only loop; type `quit` or `exit` to stop.
+
+### Example: running stage 1 (CLI)
+
+```
+> chat-ui-stage1
+--- Agent session: 2025-05-14_10-32-01 ---
+Type 'quit' to exit.
+
+You: what is the capital of France?
+Assistant: The capital of France is Paris.
+
+You: quit
+```
+
+### Example: running stage 7 (full web UI)
+
+```
+> mkdir my-session && cd my-session
+> chat-ui-stage7
+INFO:     Started server process [12345]
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+```
+
+Then open `http://127.0.0.1:8000/` in your browser. Running from a dedicated
+folder keeps `history/` and `skills/` for that session in one place.
 
 ## Notes
 
-- Each stage creates `history/` and `skills/` folders in its own directory on
-  first run. Sessions saved in one stage do not carry over to another stage.
-- Stage 1 is CLI-only and writes/reads from `stage1/history/`.
-- Stages 2 through 7 serve the browser UI at `http://localhost:8000/`.
-- For stage 6 and 7, drop some `.md` files in the local `skills/` folder
-  before starting. Two examples are included in `stage7/skills/`.
+- Each stage creates `history/` and `skills/` folders relative to the **working
+  directory** on first run. Run each stage from a dedicated folder if you want
+  sessions to stay separate.
+- For stages 6 and 7, drop `.md` files into a local `skills/` folder before
+  starting. Two examples are included in `stage7/skills/`.
+- History files saved by one stage are not guaranteed to be compatible with
+  another stage.
