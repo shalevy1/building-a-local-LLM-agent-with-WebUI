@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Qwen Agent</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; margin: 0; display: flex; height: 100vh; }
+        #sidebar { width: 240px; background: #f5f5f5; padding: 16px; overflow-y: auto; box-sizing: border-box; }
+        #main { flex: 1; display: flex; flex-direction: column; }
+        #messages { flex: 1; overflow-y: auto; padding: 16px; }
+        #input-row { display: flex; padding: 12px; border-top: 1px solid #ddd; }
+        #input { flex: 1; padding: 8px; font-size: 14px; }
+        .msg { margin-bottom: 12px; white-space: pre-wrap; }
+        .msg.user { color: #1a73e8; }
+        .msg.assistant { color: #222; }
+        .msg.thinking { color: #888; font-style: italic; font-size: 13px;
+                        border-left: 2px solid #ccc; padding-left: 8px; }
+        .msg.tool { color: #b8860b; font-family: monospace; font-size: 13px; }
+        button { display: block; width: 100%; margin: 4px 0; padding: 6px;
+                 text-align: left; background: white; border: 1px solid #ddd; cursor: pointer; font-size: 13px; }
+        button:hover { background: #eee; }
+        button.active { background: #dbe9ff; border-color: #1a73e8; }
+        h3 { font-size: 12px; text-transform: uppercase; color: #666; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h3>Sessions</h3>
+        <div id="sessions"></div>
+        <button onclick="newSession()">+ New session</button>
+
+        <h3>Skills</h3>
+        <div id="skills"><em style="color:#999;font-size:12px">(stage 6)</em></div>
+        <h3>Commands</h3>
+        <div id="commands"><em style="color:#999;font-size:12px">(stage 7)</em></div>
+    </div>
+
+    <div id="main">
+        <div id="messages"></div>
+        <div id="input-row">
+            <input id="input" placeholder="Type a message..." onkeydown="if(event.key==='Enter') send()">
+            <button onclick="send()" style="width: auto; margin-left: 8px;">Send</button>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let currentSessionId = null;
+        let currentBubble = null;
+
+        function connectWebSocket(sessionId) {
+            if (ws) ws.close();
+            currentSessionId = sessionId;
+            ws = new WebSocket(`ws://${location.host}/ws/${sessionId}`);
+            ws.onmessage = (event) => handleMessage(JSON.parse(event.data));
+        }
+
+        function handleMessage(data) {
+            const messages = document.getElementById('messages');
+            if (data.type === 'start' || data.type === 'end') {
+                currentBubble = null;
+            } else if (data.type === 'thinking') {
+                appendToBubble('thinking', data.content);
+            } else if (data.type === 'content') {
+                appendToBubble('assistant', data.content);
+            } else if (data.type === 'tool_call') {
+                addLine('tool', `→ ${data.name}(${JSON.stringify(data.args)})`);
+                currentBubble = null;
+            } else if (data.type === 'tool_result') {
+                addLine('tool', '← (tool executed)');
+                currentBubble = null;
+            } else if (data.type === 'replay_user') {
+                addLine('user', data.content);
+            } else if (data.type === 'replay_assistant') {
+                addLine('assistant', data.content);
+            }
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function addLine(cls, text) {
+            const div = document.createElement('div');
+            div.className = `msg ${cls}`;
+            div.textContent = text;
+            document.getElementById('messages').appendChild(div);
+        }
+
+        function appendToBubble(cls, text) {
+            const messages = document.getElementById('messages');
+            if (!currentBubble || !currentBubble.classList.contains(cls)) {
+                currentBubble = document.createElement('div');
+                currentBubble.className = `msg ${cls}`;
+                messages.appendChild(currentBubble);
+            }
+            currentBubble.textContent += text;
+        }
+
+        function send() {
+            const input = document.getElementById('input');
+            const text = input.value.trim();
+            if (!text || !ws) return;
+            addLine('user', text);
+            ws.send(JSON.stringify({content: text}));
+            input.value = '';
+            currentBubble = null;
+        }
+
+        async function loadSessions() {
+            const res = await fetch('/sessions');
+            const data = await res.json();
+            const container = document.getElementById('sessions');
+            container.innerHTML = '';
+            for (const sid of data.sessions) {
+                const btn = document.createElement('button');
+                btn.textContent = sid;
+                btn.onclick = () => switchSession(sid);
+                if (sid === currentSessionId) btn.classList.add('active');
+                container.appendChild(btn);
+            }
+        }
+
+        function switchSession(sid) {
+            document.getElementById('messages').innerHTML = '';
+            connectWebSocket(sid);
+            loadSessions();
+        }
+
+        function newSession() {
+            const sid = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            switchSession(sid);
+        }
+
+        window.onload = () => {
+            const sid = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            connectWebSocket(sid);
+            loadSessions();
+        };
+    </script>
+</body>
+</html>

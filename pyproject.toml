@@ -1,0 +1,40 @@
+[project]
+name = "ollama-chat-ui-examples"
+version = "0.1.0"
+description = "Progressive Chat UI examples for Ollama and Qwen"
+requires-python = ">=3.12"
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Jes Fink-Jensen", email = "jes@finkjensen.be" }
+]
+dependencies = [
+    "ollama>=0.1.0",
+    "fastapi",
+    "uvicorn",
+    "websockets"
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "stage1/src/chat_ui_01",
+    "stage2/src/chat_ui_02",
+    "stage3/src/chat_ui_03",
+    "stage4/src/chat_ui_04",
+    "stage5/src/chat_ui_05",
+    "stage6/src/chat_ui_06",
+    "stage7/src/chat_ui_07"
+]
+
+[project.scripts]
+chat-ui-stage1    = "chat_ui_01.main:chat"
+chat-ui-stage2    = "chat_ui_02.main:chat"
+chat-ui-stage3    = "chat_ui_03.main:chat"
+chat-ui-stage4    = "chat_ui_04.main:chat"
+chat-ui-stage5    = "chat_ui_05.main:chat"
+chat-ui-stage6    = "chat_ui_06.main:chat"
+chat-ui-stage7    = "chat_ui_07.main:chat"
