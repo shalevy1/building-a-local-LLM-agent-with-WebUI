@@ -174,6 +174,12 @@ async def stream_to_websocket(agent, websocket):
     else:
         agent.messages.append({'role': 'assistant', 'content': full_content})
 
+    tokens = agent.estimate_tokens()
+    if tokens > CONTEXT_THRESHOLD:
+        await websocket.send_json({'type': 'system', 'content': f"Compacting context... ({tokens}/{CONTEXT_THRESHOLD} tokens)"})
+        await agent.compact_history()
+        await websocket.send_json({'type': 'system', 'content': 'Context compacted.'})
+
     await websocket.send_json({'type': 'end'})
 
 
